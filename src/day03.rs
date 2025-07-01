@@ -1,80 +1,59 @@
-use std::collections::HashMap;
+use regex::Regex;
 use std::fs;
 use std::io;
-use std::io::BufRead;
-
-fn to_vecs(file_path: &str) -> io::Result<(Vec<i32>, Vec<i32>)> {
-    let file = fs::File::open(file_path)?;
-    let reader = io::BufReader::new(file);
-
-    let mut first_line: Vec<i32> = vec![];
-    let mut second_line: Vec<i32> = vec![];
-
-    for line in reader.lines() {
-        let line = line?;
-        let nums: Vec<i32> = line
-            .split_whitespace()
-            .map(|s| s.parse().unwrap())
-            .collect();
-
-        let num1 = nums[0];
-        let num2 = nums[1];
-
-        first_line.push(num1);
-        second_line.push(num2);
-    }
-
-    Ok((first_line, second_line))
-}
 
 pub fn part1(file_path: &str) -> io::Result<i32> {
-    let result = to_vecs(file_path)?;
-    let (mut first_line, mut second_line) = result;
+    let content = fs::read_to_string(file_path)?;
+    let re = Regex::new(r"mul\((\d+),(\d+)\)").unwrap();
 
-    first_line.sort();
-    second_line.sort();
+    let mut result = 0;
 
-    let mut part1 = 0;
+    for (_, [n1, n2]) in re.captures_iter(&content).map(|c| c.extract()) {
+        let v1 = n1.parse::<i32>().unwrap();
+        let v2 = n2.parse::<i32>().unwrap();
 
-    for (x, y) in first_line.iter().zip(second_line.iter()) {
-        part1 += i32::abs(x - y);
+        result += v1 * v2;
     }
 
-    Ok(part1)
+    Ok(result)
 }
 
 #[test]
 fn test_part1() {
-    let example = part1("assets/aoc24/day01/example.txt");
-    let input = part1("assets/aoc24/day01/input.txt");
-    assert_eq!(example.unwrap(), 11);
-    assert_eq!(input.unwrap(), 2367773);
+    let example = part1("assets/aoc24/day03/example.txt");
+    let input = part1("assets/aoc24/day03/input.txt");
+    assert_eq!(example.unwrap(), 161);
+    assert_eq!(input.unwrap(), 179571322);
 }
 
 pub fn part2(file_path: &str) -> io::Result<i32> {
-    let result = to_vecs(file_path)?;
-    let (first_line, second_line) = result;
+    let content = fs::read_to_string(file_path)?;
+    let re = Regex::new(r"mul\((\d+),(\d+)\)|(do(\(\)))|(don't(\(\)))").unwrap();
 
-    let mut freq: HashMap<i32, i32> = HashMap::new();
+    let mut enabled = true;
+    let mut result = 0;
 
-    for val in second_line {
-        *freq.entry(val).or_insert(0) += 1;
+    for (_, [n1, n2]) in re.captures_iter(&content).map(|c| c.extract()) {
+        match (n1, n2) {
+            ("do()", _n) => enabled = true,
+            ("don't()", _n) => enabled = false,
+            (n1, n2) if enabled => {
+                let v1 = n1.parse::<i32>().unwrap();
+                let v2 = n2.parse::<i32>().unwrap();
+
+                result += v1 * v2;
+            }
+            _ => {}
+        }
     }
 
-    let mut part2 = 0;
-
-    for val in first_line {
-        let cnt = *freq.get(&val).unwrap_or(&0);
-        part2 += val * cnt;
-    }
-
-    Ok(part2)
+    Ok(result)
 }
 
 #[test]
 fn test_part2() {
-    let example = part2("assets/aoc24/day01/example.txt");
-    let input = part2("assets/aoc24/day01/input.txt");
-    assert_eq!(example.unwrap(), 31);
-    assert_eq!(input.unwrap(), 21271939);
+    let example = part2("assets/aoc24/day03/example2.txt");
+    let input = part2("assets/aoc24/day03/input.txt");
+    assert_eq!(example.unwrap(), 48);
+    assert_eq!(input.unwrap(), 103811193);
 }
